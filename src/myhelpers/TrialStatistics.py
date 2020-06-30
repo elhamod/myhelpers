@@ -324,7 +324,7 @@ class TrialStatistics:
     def trialScatter(self, x, y, aggregatedBy=None, save_plot=False):
         df = self.df
             
-        file_name = 'plot' + ((' by ' + aggregatedBy) if aggregatedBy is not None else '')
+        file_name = 'plot ' + y + " to " +  x + ((' by ' + aggregatedBy) if aggregatedBy is not None else '')
                  
         
         # get unique values for aggregate by
@@ -333,6 +333,7 @@ class TrialStatistics:
             uniqueValues=df[aggregatedBy].unique()       
 
         # prepare axis
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         fig=plt.figure()
         ax=fig.add_axes([0,0,1,1])
         ax.set_xlabel(x)
