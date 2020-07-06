@@ -333,9 +333,8 @@ class TrialStatistics:
             uniqueValues=df[aggregatedBy].unique()       
 
         # prepare axis
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        fig=plt.figure()
-        ax=fig.add_axes([0,0,1,1])
+        fig, ax=plt.subplots()
+        plt.tight_layout()
         ax.set_xlabel(x)
         ax.set_ylabel(y)
         
@@ -353,6 +352,7 @@ class TrialStatistics:
                           label=val)
             ax.legend()
             
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         if save_plot:
             fig.savefig(os.path.join(self.experiment_name, file_name+".pdf"))
 
