@@ -176,10 +176,10 @@ class TrialStatistics:
                 self.trial_results_keys.append(key)
                 
     # Adds the predictions for confusion matrix calculations
-    def addTrialPredictions(self, trial_params, predlist, lbllist, numberOffine):
+    def addTrialPredictions(self, trial_params, predlist, lbllist, order_indices):
         self.agg_confusionMatrices = {}
         # Confusion matrix
-        conf_mat=confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy(), labels = range(numberOffine))
+        conf_mat=confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy(), labels = order_indices)
         trial_params_copy = self.preProcessParameters(trial_params)
         trial_hash = getTrialName(trial_params_copy)
         if trial_hash not in self.confusionMatrices:
