@@ -3,7 +3,7 @@ from torchvision import transforms
 
 class dataset_normalization():
     def __init__(self, dataset):
-        self.dataloader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset))
+        self.dataloader = torch.utils.data.DataLoader(dataset, batch_size=128)
         
     def getTransform(self):
         mean = 0.
