@@ -324,7 +324,7 @@ class TrialStatistics:
     def trialScatter(self, x, y, aggregatedBy=None, save_plot=False):
         df = self.df
             
-        file_name = 'plot ' + y + " to " +  x + ((' by ' + aggregatedBy) if aggregatedBy is not None else '')
+        file_name = 'plot ' + y + " to " +  x + ((' by ' + str(aggregatedBy)) if aggregatedBy is not None else '')
                  
         
         # get unique values for aggregate by

@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 import copy
+import os
+
+best_model_file_name = "best_model.pt"
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
@@ -48,6 +51,7 @@ class EarlyStopping:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
         self.bestModelSoFar = copy.deepcopy(model.state_dict())
         self.val_loss_min = val_loss
+        torch.save(model.state_dict(), os.path.join(self.path, best_model_file_name))
         
     def getBestModel(self):
         return self.bestModelSoFar
