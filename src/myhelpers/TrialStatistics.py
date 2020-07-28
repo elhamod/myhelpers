@@ -20,7 +20,7 @@ confusionMatrixFileName = "confusion_matrix.pdf"
 
 
 # Given a confusion matrix, gets metris of fine with respect to coarse
-class fine_Coarse_Statistics:
+class fine_statistics:
     def __init__(self, cm, dataset):
         self.dataset = dataset
         self.cm = cm
@@ -87,7 +87,7 @@ class fine_Coarse_Statistics:
         }
 
 # Given a confusion matrix, get statistics of coarse labels
-class Coarse_Statistics:
+class coarse_statistics:
     def __init__(self, cm, dataset):
         self.dataset = dataset
         self.cm = cm
@@ -292,14 +292,14 @@ class TrialStatistics:
         df = pd.DataFrame(columns=columns)
 
         if self.prefix == "coarse":
-            stats = Coarse_Statistics(cm, dataset)
+            stats = coarse_statistics(cm, dataset)
             for coarse_name in dataset.getCoarseList():
                 coarse_index = dataset.getCoarseList().index(coarse_name)
                 coarse_stats = stats.get_F1Scores(coarse_index)
                 df.loc[coarse_index] = [" ".join([str(coarse_index), coarse_name]),
                                    coarse_stats["f1_macro"]]
         else:
-            stats = fine_Coarse_Statistics(cm, dataset)
+            stats = fine_statistics(cm, dataset)
             for fine in range(len(dataset.getfineList())):
                 fine_stats = stats.get_F1Scores(fine)
                 fine_name = dataset.getfineOfIndex(fine)

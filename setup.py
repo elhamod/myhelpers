@@ -1,3 +1,23 @@
-from setuptools import setup, find_packages
+# -*- coding: utf-8 -*-
+"""
+    Setup file for myhelpers.
+    Use setup.cfg to configure your project.
 
-setup(name='myhelpers', version='1.0', packages=find_packages(where="helpers", exclude=["tests"])) # , include=["color.PCA.py","config_plots.py", "ZCA.py", "TrialStatistics.py", "confusion_matrix_plotter.py", "earlystopping.py", "dataset_normalization.py" ] 
+    This file was generated with PyScaffold 3.2.3.
+    PyScaffold helps you to put up the scaffold of your new Python project.
+    Learn more under: https://pyscaffold.org/
+"""
+import sys
+
+from pkg_resources import VersionConflict, require
+from setuptools import setup
+
+try:
+    require('setuptools>=38.3')
+except VersionConflict:
+    print("Error: version of setuptools is too old (<38.3)!")
+    sys.exit(1)
+
+
+if __name__ == "__main__":
+    setup(use_pyscaffold=True)
