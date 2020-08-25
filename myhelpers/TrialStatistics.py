@@ -27,9 +27,9 @@ class fine_Coarse_Statistics:
     
     def get_statistics(self, fine_index):
         true_positives = self.cm[fine_index, fine_index]
-        fine_name = self.dataset.getfineOfIndex(fine_index)
-        fine_names = self.dataset.getfineWithinCoarse(self.dataset.getCoarseFromfine(fine_name))
-        fine_indexes = list(map(lambda x: self.dataset.getfineList().index(x), fine_names))
+        fine_name = self.dataset.csv_processor.getFineList()[fine_index]
+        fine_names = self.dataset.csv_processor.getFineWithinCoarse(self.dataset.csv_processor.getCoarseFromFine(fine_name))
+        fine_indexes = list(map(lambda x: self.dataset.csv_processor.getFineList().index(x), fine_names))
 
         within_coarse_FP = np.sum(self.cm[fine_indexes, fine_index]) - true_positives
         out_of_coarse_FP = np.sum(self.cm[:, fine_index]) - true_positives - within_coarse_FP
@@ -279,6 +279,18 @@ class TrialStatistics:
 
     
     
+    def pandasBoxplot(self, columns, bys, saveFig=True, figsize=(16, 7), color='r'):
+        fig, ax = plt.subplots(figsize=figsize)
+        pandasBoxplot(self.df.copy(), columns, bys, ax, color)
+
+        if saveFig:
+            name = hashlib.sha224(str(self.df).encode('utf-8')).hexdigest()
+            name = "boxplot of " + (" and ".join(columns)) + " by " + (" and ".join(bys)) + " - "+ name
+            if not os.path.exists(self.experiment_name):
+                os.makedirs(self.experiment_name)
+            fig.savefig(os.path.join(self.experiment_name,name+ ".pdf"), bbox_inches='tight')
+    
+
     def printF1table(self, trial_params, dataset):
         cm = self.getTrialConfusionMatrix(trial_params)
 
@@ -293,18 +305,18 @@ class TrialStatistics:
 
         if self.prefix == "coarse":
             stats = Coarse_Statistics(cm, dataset)
-            for coarse_name in dataset.getCoarseList():
-                coarse_index = dataset.getCoarseList().index(coarse_name)
+            for coarse_name in dataset.csv_processor.getCoarseList():
+                coarse_index = dataset.csv_processor.getCoarseList().index(coarse_name)
                 coarse_stats = stats.get_F1Scores(coarse_index)
                 df.loc[coarse_index] = [" ".join([str(coarse_index), coarse_name]),
                                    coarse_stats["f1_macro"]]
         else:
             stats = fine_Coarse_Statistics(cm, dataset)
-            for fine in range(len(dataset.getfineList())):
+            for fine in range(len(dataset.csv_processor.getFineList())):
                 fine_stats = stats.get_F1Scores(fine)
-                fine_name = dataset.getfineOfIndex(fine)
-                coarse_name = dataset.getCoarseFromfine(fine_name)
-                coarse_index = dataset.getCoarseList().index(coarse_name)
+                fine_name = dataset.csv_processor.getFineList()[fine]
+                coarse_name = dataset.csv_processor.getCoarseFromFine(fine_name)
+                coarse_index = dataset.csv_processor.getCoarseList().index(coarse_name)
                 vals = [" ".join([str(fine), str(fine_name)]),
                                    " ".join([str(coarse_index), str(coarse_name)]),
                                    fine_stats["f1_macro"],]
@@ -313,11 +325,14 @@ class TrialStatistics:
                                fine_stats["f1_macro_out_of_coarse"]]
                 df.loc[fine] = vals
             
+        df = df.sort_values(by=['F1'])
+        df.loc['mean'] = df.mean()
+
         display(HTML(df.to_html()))
         file_name = "F1_Scores"
         if self.prefix == "coarse":
             file_name = file_name + "_coarse"
-        pivot_ui(df,outfile_path=os.path.join(self.experiment_name, file_name+".html"))
+        df.to_csv(os.path.join(self.experiment_name, file_name+".csv"))  
     
     
     
@@ -366,3 +381,20 @@ def getTrialName(trial_params, trial_number=None):
     if trial_number is not None:
         trialName = trialName + str(trial_number)
     return hashlib.sha224(trialName.encode('utf-8')).hexdigest()
+
+def pandasBoxplot(df, columns, bys, ax, color, positions=None):    
+    # changes because of latex
+    df = df.copy().replace(r"_", "", regex=True)
+    columns = [w.replace('_', '') for w in columns]
+    bys = [w.replace('_', '') for w in bys]
+
+
+    df.boxplot(column=columns, by=bys,
+        meanline=True,             
+        color=dict(boxes=color, whiskers=color, medians=color, caps=color),
+        boxprops=dict(linestyle='-', linewidth=1.5),
+        flierprops=dict(linestyle='-', linewidth=1.5),
+        medianprops=dict(linestyle='-', linewidth=1.5),
+        whiskerprops=dict(linestyle='-', linewidth=1.5),
+        ax=ax,  positions=positions, return_type='dict', showfliers=False, grid=True, rot=0)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
