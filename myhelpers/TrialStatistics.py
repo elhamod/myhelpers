@@ -16,7 +16,9 @@ from .confusion_matrix_plotter import plot_confusion_matrix, generate_classifica
 aggregateStatFileName = "agg_experiments.csv"
 rawStatFileName = "raw_experiments.csv"
 confusionMatrixParamsFileName="params.json"
-confusionMatrixFileName = "confusion_matrix.pdf"
+confusionMatrixFileName = "experiment_confusion_matrix.pdf"
+confusionMatrixFileName_csv = "experiment_confusion_matrix.csv"
+confusionMatrixFileName_trial_csv = "trial_confusion_matrix_{0}.csv"
 
 
 # Given a confusion matrix, gets metris of fine with respect to coarse
@@ -176,15 +178,41 @@ class TrialStatistics:
                 self.trial_results_keys.append(key)
                 
     # Adds the predictions for confusion matrix calculations
-    def addTrialPredictions(self, trial_params, predlist, lbllist, order_indices):
+    def addTrialPredictions(self, trial_params, trial_number, predlist, lbllist, order_indices):
         self.agg_confusionMatrices = {}
-        # Confusion matrix
-        conf_mat=confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy(), labels = order_indices)
+
+        # Load/save Confusion matrix
+        file_name = confusionMatrixFileName_trial_csv.format(getTrialName(trial_params, trial_number))
+        conf_mat = self.save_load_matrix(file_name, trial_params, order_indices, lbllist, predlist)
+        
         trial_params_copy = self.preProcessParameters(trial_params)
         trial_hash = getTrialName(trial_params_copy)
         if trial_hash not in self.confusionMatrices:
             self.confusionMatrices[trial_hash] = []
         self.confusionMatrices[trial_hash].append(conf_mat)
+
+    # lbllist is None -> aggregate matrix. Otherwise, trial matrix
+    def save_load_matrix(self, file_name, trial_params, order_indices=None, lbllist=None, predlist=None):
+        if self.prefix is not None:
+            file_name = self.prefix + "_" + file_name
+        conf_mat_dir = os.path.join(self.experiment_name, getTrialName(trial_params))
+        conf_mat_file = os.path.join(conf_mat_dir, file_name)
+        if os.path.exists(conf_mat_file):
+            print("Loading ", conf_mat_file)
+            conf_mat_df = pd.read_csv(conf_mat_file, index_col=0)
+            conf_mat = conf_mat_df.to_numpy()
+        else:
+            print("Saving ", conf_mat_file)
+            if not os.path.exists(conf_mat_dir):
+                os.makedirs(conf_mat_dir)
+            if lbllist is not None:
+                conf_mat=confusion_matrix(list(map(lambda x: order_indices[x] , lbllist.cpu().numpy())), list(map(lambda x: order_indices[x] , predlist.cpu().numpy())), labels = order_indices, normalize='true')
+            else:
+                conf_mat = self.agg_confusionMatrices[getTrialName(trial_params)]
+            conf_mat_df = pd.DataFrame(conf_mat)
+            conf_mat_df.to_csv(conf_mat_file)
+        
+        return conf_mat
    
     def aggregateTrials(self):        
         # group by trial params
@@ -255,8 +283,12 @@ class TrialStatistics:
         f = open(os.path.join(aggregatePath, confusionMatrixParamsFileName),"w")        
         f.write(j)
         f.close() 
+
+        conf_mat = self.getTrialConfusionMatrix(trial_params)
+
+        lst=list(map(lambda x: x[1] + " - " + str(x[0]), enumerate(lst))) 
             
-        return plot_confusion_matrix(self.getTrialConfusionMatrix(trial_params),
+        return plot_confusion_matrix(conf_mat,
                                   lst,
                                   aggregatePath,
                                   file_name,
@@ -273,8 +305,9 @@ class TrialStatistics:
     
     def getTrialConfusionMatrix(self, trial_params):
         self.prepareConfusionMatrix(trial_params)
-        
-        return self.agg_confusionMatrices[getTrialName(trial_params)]
+
+        # save confusion matric
+        return self.save_load_matrix(confusionMatrixFileName_csv, trial_params)
     
 
     
@@ -304,6 +337,7 @@ class TrialStatistics:
         df = pd.DataFrame(columns=columns)
 
         if self.prefix == "coarse":
+            #TODO: FIX ME!!! cm here is normalized, and so cannot be used for f1-score. We need to get another unnormalized version of it for that
             stats = Coarse_Statistics(cm, dataset)
             for coarse_name in dataset.csv_processor.getCoarseList():
                 coarse_index = dataset.csv_processor.getCoarseList().index(coarse_name)
@@ -311,6 +345,7 @@ class TrialStatistics:
                 df.loc[coarse_index] = [" ".join([str(coarse_index), coarse_name]),
                                    coarse_stats["f1_macro"]]
         else:
+            #TODO: FIX ME!!! cm here is normalized, and so cannot be used for f1-score. We need to get another unnormalized version of it for that
             stats = fine_Coarse_Statistics(cm, dataset)
             for fine in range(len(dataset.csv_processor.getFineList())):
                 fine_stats = stats.get_F1Scores(fine)
@@ -385,16 +420,23 @@ def getTrialName(trial_params, trial_number=None):
 def pandasBoxplot(df, columns, bys, ax, color, positions=None):    
     # changes because of latex
     df = df.copy().replace(r"_", "", regex=True)
+    df.columns = df.columns.str.replace('_','')
     columns = [w.replace('_', '') for w in columns]
     bys = [w.replace('_', '') for w in bys]
 
 
-    df.boxplot(column=columns, by=bys,
+    bp = df.boxplot(column=columns, by=bys,
         meanline=True,             
-        color=dict(boxes=color, whiskers=color, medians=color, caps=color),
+        # color=dict(boxes=color, whiskers=color, medians=color, caps=color),
         boxprops=dict(linestyle='-', linewidth=1.5),
         flierprops=dict(linestyle='-', linewidth=1.5),
         medianprops=dict(linestyle='-', linewidth=1.5),
         whiskerprops=dict(linestyle='-', linewidth=1.5),
         ax=ax,  positions=positions, return_type='dict', showfliers=False, grid=True, rot=0)
+    
+    [[item.set_color(color) for item in bp[key]['boxes']] for key in bp.keys()]
+    [[item.set_color(color) for item in bp[key]['whiskers']] for key in bp.keys()]
+    [[item.set_color(color) for item in bp[key]['medians']] for key in bp.keys()]
+    [[item.set_color(color) for item in bp[key]['caps']] for key in bp.keys()]
+
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
