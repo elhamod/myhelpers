@@ -58,7 +58,7 @@ def plot_confusion_matrix(cm,
     if cmap is None:
         cmap = plt.get_cmap('Blues')
 
-    plt.figure(figsize=(40, 40), dpi=300)
+    plt.figure(figsize=(30, 30), dpi=300)
     plt.title("Confusion Matrix")
 
     if target_names is not None:
