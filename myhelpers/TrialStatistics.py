@@ -206,7 +206,7 @@ class TrialStatistics:
             if not os.path.exists(conf_mat_dir):
                 os.makedirs(conf_mat_dir)
             if lbllist is not None:
-                conf_mat=confusion_matrix(list(map(lambda x: order_indices[x] , lbllist.cpu().numpy())), list(map(lambda x: order_indices[x] , predlist.cpu().numpy())), labels = order_indices, normalize='true')
+                conf_mat=confusion_matrix(list(map(lambda x: order_indices[x] , lbllist.cpu().numpy())), list(map(lambda x: order_indices[x] , predlist.cpu().numpy())), labels = order_indices, normalize=None)
             else:
                 conf_mat = self.agg_confusionMatrices[getTrialName(trial_params)]
             conf_mat_df = pd.DataFrame(conf_mat)

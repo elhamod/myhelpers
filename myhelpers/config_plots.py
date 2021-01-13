@@ -10,12 +10,12 @@ def global_settings():
         "font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
         "font.sans-serif": [],
         "font.monospace": [],
-        "axes.labelsize": 16,               # LaTeX default is 10pt font.
-        'axes.titlesize': 15,
-        "font.size": 19,
-        "legend.fontsize": 16,               # Make the legend/label fonts a little smaller
-        "xtick.labelsize": 16, #23?
-        "ytick.labelsize": 16,
+        "axes.labelsize": 25,               # LaTeX default is 10pt font.
+        'axes.titlesize': 25,
+        "font.size": 25,
+        "legend.fontsize": 25,               # Make the legend/label fonts a little smaller
+        "xtick.labelsize": 25, #23?
+        "ytick.labelsize": 25,
 #         "pgf.preamble": [
 #             r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
 #             r"\usepackage[T1]{fontenc}",        # plots will be generated using this preamble
