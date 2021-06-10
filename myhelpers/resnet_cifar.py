@@ -1,3 +1,5 @@
+#https://github.com/chenyaofo/pytorch-cifar-models/releases
+
 '''
 Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun.
 Deep Residual Learning for Image Recognition.

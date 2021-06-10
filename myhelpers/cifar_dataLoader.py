@@ -39,12 +39,13 @@ class CifarDataset(Dataset):
         self.imageDimension = 32 # if None, CSV_processor will load original images
         self.n_channels = 3
         self.data_root, self.suffix  = getParams(params)
-        self.augmentation_enabled = False
+        self.augmentation_enabled = params['augmented']
         self.normalizer = None
         self.normalization_enabled = True
         self.composedTransforms = None
         self.csv_processor = self
         self.fineToCoarseMatrix = None
+        self.type_ = type_
 
         # training = ((type_ == "train") or(type_ == "val"))
         training = (type_ == "train")   
@@ -57,7 +58,7 @@ class CifarDataset(Dataset):
         print(data_root_suffix)     
         self.dataset = datasets.CIFAR100(data_root_suffix, download=True, train=training, target_transform=self.getTargetTransform)
 
-        x=unpickle(os.path.join(self.data_root,'cifar-100-python/train'))
+        x=unpickle(os.path.join(self.data_root,'cifar-100-python', 'train' if training else 'test'))
         self.coarse_to_fine=Dictlist()
         for i in range(0,len(x[b'coarse_labels'])):
             self.coarse_to_fine[x[b'coarse_labels'][i]]=x[ b'fine_labels'][i]
@@ -72,7 +73,7 @@ class CifarDataset(Dataset):
         # Create transfroms
         # Toggle beforehand so we could create the normalization transform. Then toggle back.
         if self.normalizer is None:
-            augmentation, normalization = self.toggle_image_loading(augmentation=False, normalization=False)   
+            augmentation, normalization, _ = self.toggle_image_loading(augmentation=False, normalization=False)   
             print("CIFAR normalization")
             # Cifar normalization: 
             self.normalizer = [transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])]
@@ -84,7 +85,15 @@ class CifarDataset(Dataset):
         self.build_taxonomy()
     
     def getTransforms(self):
-        transformsList = [transforms.ToTensor()]
+
+        transformsList = []
+        if self.augmentation_enabled:
+            transformsList = transformsList + [
+                transforms.RandomCrop(size=(32, 32), padding=4),
+                transforms.RandomHorizontalFlip()
+            ]
+
+        transformsList = transformsList + [transforms.ToTensor()]
             
         if self.normalization_enabled:
             transformsList = transformsList + self.normalizer
@@ -130,10 +139,11 @@ class CifarDataset(Dataset):
                 self.fineToCoarseMatrix[fine_index][coarse_index] = 1
         return self.fineToCoarseMatrix
     
-    def toggle_image_loading(self, augmentation, normalization):
-        old = (self.augmentation_enabled, self.normalization_enabled)
-        self.augmentation_enabled = False
+    def toggle_image_loading(self, augmentation, normalization, pad=None):
+        old = (self.augmentation_enabled, self.normalization_enabled, None)
+        self.augmentation_enabled = augmentation
         self.normalization_enabled = normalization
+        # print(self.type_, self.augmentation_enabled)
         self.transforms = None
         return old
         
@@ -143,20 +153,35 @@ class CifarDataset(Dataset):
             'coarse': self.coarse_index_list.index(self.getCoarseFromFine(self.dataset.classes[target]))
         }
 
+    def get_target_from_layerName(self, batch, layer_name, hierarchyBased=True, z_triplet=None, triplet_layers_dic=['layer2', 'layer3']):
+        result = None
+        first_layer = triplet_layers_dic[0]
+        second_layer = triplet_layers_dic[1]
+        
+        if layer_name == first_layer:
+            result = batch['coarse' if hierarchyBased==True else 'fine'] 
+        elif layer_name == second_layer:
+            result = batch['fine']
+            
+        return result
+
+    
     def __getitem__(self, idx):       
         if self.transforms is None:
+            # print('transform', self.type_, self.augmentation_enabled)
             self.transforms = self.getTransforms()
+            # print(self.transforms)
+            # print('---')
             self.composedTransforms = transforms.Compose(self.transforms)
             self.dataset.transform = self.composedTransforms
             
         image, target = self.dataset[idx]
-        if torch.cuda.is_available():
-            image = image.cuda()
+        # if torch.cuda.is_available():
+        #     image = image.cuda()
 
         return {'image': image, 
                 'fine': target['fine'], 
                 'fileName': self.fileNames[idx], #TODO Is this full name?
-                'fileNameFull': self.fileNames[idx],
                 'coarse': target['coarse'],} 
 
     def build_taxonomy(self):
@@ -252,7 +277,7 @@ class datasetManager:
         if self.dataset_train is None:
             print("Creating dataset...")
             self.dataset_train = CifarDataset("train", self.params, verbose=self.verbose)
-            self.dataset_test = CifarDataset("val", self.params, verbose=self.verbose)
+            self.dataset_test = CifarDataset("test", self.params, verbose=self.verbose)
             print("Creating dataset... Done.")
         return self.dataset_train, self.dataset_test
 
