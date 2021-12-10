@@ -216,7 +216,7 @@ class TrialStatistics:
    
     def aggregateTrials(self):        
         # group by trial params
-        groupedBy_df = self.df.replace('/','', regex=True).replace('_','', regex=True).groupby(self.trial_params_keys)
+        groupedBy_df = self.df.replace('/','', regex=True).replace('_','', regex=True).fillna("None").groupby(self.trial_params_keys)
         
         # For each result key, calculate mean and std
         for key in self.trial_results_keys:
