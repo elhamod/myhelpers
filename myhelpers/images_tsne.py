@@ -42,8 +42,18 @@ def get_tsne(dataloader, model, activation_layer, img_res, path, file_prefix, le
     ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
 
     visualize_tsne_images(dataloader, tx, ty, img_res, path, file_prefix, legend_labels, model, cuda)
+    
+    # This code is going to only work for butterflies:
+    try:
+        plot_by_comimics(dataloader, tx, ty, img_res, path, file_prefix, legend_labels, model, cuda)
+    except:
+        pass
+
     plot_tsne_dots(dataloader, tx, ty, img_res, path, file_prefix, legend_labels, model, cuda)
+    
     plot_correct_incorrect(dataloader, tx, ty, img_res, path, file_prefix, legend_labels, model, cuda)
+    
+
 
 
 
@@ -68,12 +78,20 @@ def plot_tsne_dots(dataloader, tx, ty, img_res, path, file_prefix, legend_labels
     df['tsne-x'] = tx
     df['tsne-y'] = ty
     fine_labels = fine_labels.tolist()
-    df['fine'] = fine_labels
     coarse_labels = coarse_labels.tolist()
-    df['coarse'] = coarse_labels
+    
     # print(df)
     # print(set(fine_labels))
     # print(len(set(fine_labels)))
+
+    if hasattr(dataloader.dataset, 'csv_processor'):
+        # print('hi', fine_labels)
+        fine_labels = list(map(lambda x :dataloader.dataset.csv_processor.getFineList()[x], fine_labels))
+        coarse_labels = list(map(lambda x :dataloader.dataset.csv_processor.getCoarseList()[x], coarse_labels))
+        # print('ho', fine_labels)
+
+    df['coarse'] = coarse_labels
+    df['fine'] = fine_labels
 
     for legend_label in legend_labels:
         matplotlib.pyplot.figure(figsize=(16,10))
@@ -86,6 +104,47 @@ def plot_tsne_dots(dataloader, tx, ty, img_res, path, file_prefix, legend_labels
         )
         fig = sns_plot.get_figure()
         fig.savefig(os.path.join(path, file_prefix+"_legend" + legend_label +"_tsne_dots.png"))
+
+
+
+
+def plot_by_comimics(dataloader, tx, ty, img_res, path, file_prefix, legend_labels=['fine'], model=None, cuda=None):
+    # Parse through the dataloader images
+    comimics = None
+    a, n, _ = dataloader.dataset.toggle_image_loading(dataloader.dataset.augmentation_enabled, True)
+
+    # create comimics components
+    comimicsComponents, subspecies_labels = dataloader.dataset.csv_processor.getComimicComponents()
+
+    for i, batch in tqdm(enumerate(dataloader), total=len(dataloader)):
+        fine_label = batch['fine']
+        image2 = batch['image']
+        # if cuda is not None:
+        #     image2 = image2.cuda()
+        #     fine_label = fine_label.cuda()
+        # print(fine_label, comimicsComponents)
+        comimics_ = fine_label.apply_(lambda x: comimicsComponents[x])
+        comimics = comimics_ if comimics is None else torch.cat([comimics, comimics_]).detach()
+    
+    dataloader.dataset.toggle_image_loading(a, n)
+
+    df = pd.DataFrame()
+    df['tsne-x'] = tx
+    df['tsne-y'] = ty
+    fine_labels = comimics.tolist()
+    fine_labels = list(map(lambda x :subspecies_labels[comimicsComponents.tolist().index(comimicsComponents[x])], fine_labels))
+    df['comimcs_ring'] = fine_labels
+
+    matplotlib.pyplot.figure(figsize=(16,10))
+    sns_plot = sns.scatterplot(
+        x="tsne-x", y="tsne-y",
+        hue='comimcs_ring',
+        palette=sns.color_palette("hls", len(set(fine_labels))),
+        data=df,
+        legend="full"
+    )
+    fig = sns_plot.get_figure()
+    fig.savefig(os.path.join(path, file_prefix+"_tsne_comimcs_ring.png"))
 
 
 def plot_correct_incorrect(dataloader, tx, ty, img_res, path, file_prefix, legend_labels=['fine'], model=None, cuda=None):
