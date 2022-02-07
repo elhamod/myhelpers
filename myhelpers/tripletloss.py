@@ -245,15 +245,15 @@ class OnlineTripletLoss(nn.Module):
     triplets
     """
 
-    def __init__(self, margin, triplet_selector, hierarchyBased, triplet_layers_dic, device=None):
+    def __init__(self, margin, triplet_selector, device=None):
         super(OnlineTripletLoss, self).__init__()
         self.margin = margin
         self.triplet_selector = triplet_selector
         self.device = device
-        self.hierarchyBased = hierarchyBased
-        self.triplet_layers_dic = triplet_layers_dic
+        # self.hierarchyBased = hierarchyBased
+        # self.triplet_layers_dic = triplet_layers_dic
 
-    def forward(self, embeddings_, batch, layer_name, csv_processor):
+    def forward(self, embeddings_, batch, layer_name, targetFromLayer):
         #Let's try normalizing the embedding
 #         embeddings = embeddings/torch.norm(embeddings, dim=1).unsqueeze(1)
 #         print('embeddings shape', embeddings.shape)
@@ -264,7 +264,9 @@ class OnlineTripletLoss(nn.Module):
 
         # print(embeddings.shape)
         #TODO: This needs to be more sophisticated for phylogeny dataset
-        target = csv_processor.get_target_from_layerName(batch, layer_name, self.hierarchyBased, embeddings_, triplet_layers_dic=self.triplet_layers_dic)
+        # print('hello3', targetFromLayer.unusedLayersState)
+        target = targetFromLayer.get_target_from_layerName(batch, layer_name, embeddings_)
+        # print('hi', target, batch, layer_name, embeddings_)
         triplets = self.triplet_selector.get_triplets(embeddings, target)
         # print('triplets 2', triplets.shape)
 
@@ -304,7 +306,7 @@ def get_tripletLossLoader(dataset, n_samples):
     batch_sampler = BalancedBatchSampler(dataset.dataset.targets, n_classes=n_classes, n_samples=n_samples)
     return torch.utils.data.DataLoader(dataset, batch_sampler=batch_sampler, **kwargs)
 
-def get_triplet_criterion(margin, selection_criterion, hierarchyBased, triplet_layers_dic, device):
+def get_triplet_criterion(margin, selection_criterion, device):
     selector = None
     if selection_criterion=="semihard":
         selector = SemihardNegativeTripletSelector
@@ -315,7 +317,7 @@ def get_triplet_criterion(margin, selection_criterion, hierarchyBased, triplet_l
     else:
         raise NotImplementedError
  
-    return OnlineTripletLoss(margin, selector(margin, device is None), hierarchyBased, triplet_layers_dic)
+    return OnlineTripletLoss(margin, selector(margin, device is None))
 
 def get_triplet_output_mapping(batch, csv_processor):
     return csv_processor.get_triplet_output_mapping(batch)
