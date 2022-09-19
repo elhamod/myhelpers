@@ -267,7 +267,6 @@ class TrialStatistics:
     
     
     
-
         
     # prints aggregate confusion matrix for trials    
     def printTrialConfusionMatrix(self, trial_params, lst, printOutput=False,
