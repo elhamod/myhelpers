@@ -18,6 +18,7 @@ def plot_confusion_matrix(cm,
                           printOutput=False,
                           cmap=None,
                           normalize=True,
+                          add_text=False,
 ):
     """
     given a sklearn confusion matrix (cm), make a nice plot
@@ -73,17 +74,17 @@ def plot_confusion_matrix(cm,
     plt.colorbar()
 
 
-    # Removing text for now. TODO: add a flag for this.
-    # thresh = np.nanmax(cm) / 1.5 if normalize else np.nanmax(cm) / 2
-    # for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    #     if normalize:
-    #         plt.text(j, i, "{:0.2f}".format(cm[i, j]),
-    #                  horizontalalignment="center",
-    #                  color="white" if cm[i, j] > thresh else "black")
-    #     else:
-    #         plt.text(j, i, "{:,}".format(cm[i, j]),
-    #                  horizontalalignment="center",
-    #                  color="white" if cm[i, j] > thresh else "black")
+    if add_text:
+        thresh = np.nanmax(cm) / 1.5 if normalize else np.nanmax(cm) / 2
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            if normalize:
+                plt.text(j, i, "{:0.2f}".format(cm[i, j]),
+                        horizontalalignment="center",
+                        color="white" if cm[i, j] > thresh else "black")
+            else:
+                plt.text(j, i, "{:,}".format(cm[i, j]),
+                        horizontalalignment="center",
+                        color="white" if cm[i, j] > thresh else "black")
             
     plt.tight_layout()
     plt.ylabel('True label')

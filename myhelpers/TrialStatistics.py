@@ -270,7 +270,8 @@ class TrialStatistics:
 
         
     # prints aggregate confusion matrix for trials    
-    def printTrialConfusionMatrix(self, trial_params, lst, printOutput=False):
+    def printTrialConfusionMatrix(self, trial_params, lst, printOutput=False,
+                          add_text=False):
         aggregatePath = os.path.join(self.experiment_name, getTrialName(trial_params))
         if not os.path.exists(aggregatePath):
             os.makedirs(aggregatePath)
@@ -292,7 +293,7 @@ class TrialStatistics:
                                   lst,
                                   aggregatePath,
                                   file_name,
-                                  printOutput)
+                                  printOutput,add_text=add_text)
     
     def aggregateTrialConfusionMatrices(self):
         for hash_key in self.confusionMatrices:

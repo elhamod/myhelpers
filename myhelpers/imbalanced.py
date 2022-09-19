@@ -1,5 +1,6 @@
 # from https://github.com/ufoym/imbalanced-dataset-sampler/
 
+from builtins import isinstance
 from typing import Callable
 
 import pandas as pd
@@ -57,7 +58,8 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
 
         # distribution of classes in the dataset
         df = pd.DataFrame()
-        df["label"] = self._get_labels(dataset)
+        l = self._get_labels(dataset)
+        df["label"] = [l[i] for i in self.indices]
         df.index = self.indices
         df = df.sort_index()
 

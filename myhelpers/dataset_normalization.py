@@ -13,6 +13,12 @@ class dataset_normalization():
 
         self.reader_writer = JSON_reader_writer(dir_name, "dataset_normlization.json")
         self.read_file = self.reader_writer.readFile()
+
+        self.mean = None
+        self.std = None
+
+        self.transform = None
+        self.inv_transform = None
         
     def getTransform(self):
         if self.read_file is None:
@@ -47,5 +53,13 @@ class dataset_normalization():
             self.mean = self.read_file["mean"]
             self.std = self.read_file["std"]
 
+        self.transform = transforms.Normalize(self.mean, self.std)
 
-        return [transforms.Normalize(self.mean, self.std)]
+
+        return [self.transform]
+
+    def getDenormalizeTransform(self):
+        if self.transform is None:
+            self.getTransform()
+        
+        return [transforms.Normalize([-self.transform.mean[i] / self.transform.std[i] for i, _ in enumerate(self.transform.mean)], [1 / self.transform.std[i] for i, _ in enumerate(self.transform.mean)])]
