@@ -53,4 +53,4 @@ train_loader, val_loader, test_loader = manager.getLoaders()
 print(len(train_loader), len(val_loader), len(test_loader))
 print(len(train_loader.dataset), len(val_loader.dataset), len(test_loader.dataset))
 
-train_loader.dataset[0]
+print(train_loader.dataset[0])

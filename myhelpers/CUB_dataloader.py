@@ -16,12 +16,6 @@ testIndexFileName = "testIndex.pkl"
 valIndexFileName = "valIndex.pkl"
 trainingIndexFileName = "trainingIndex.pkl"
 
-
-def unpickle(file):
-    import pickle
-    with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding='bytes')
-    return dict
         
 class CUB_Dataset(Dataset):
     def __init__(self, type_, params, normalizer=None, verbose=False):
@@ -61,11 +55,6 @@ class CUB_Dataset(Dataset):
         # # We don't have the genus for CUB dataset. so, we are just going to have species.
         # self.fileNames = x[b'filenames']
 
-        cifar_data_root = '/raid/elhamod/cifar-100-python/'
-        
-        metadata = unpickle(os.path.join(cifar_data_root,'cifar-100-python/meta'))
-        self.coarse_index_list = metadata[b'coarse_label_names']
-
         # TODO: This will never run as normalizer won't be None as seen above
 
         # Create transfroms
@@ -104,39 +93,26 @@ class CUB_Dataset(Dataset):
     
     # The list of fine/coarse names
     def getFineList(self):
-        return self.dataset.classes
+        return NotImplementedError
     def getCoarseList(self):
-        return self.coarse_index_list
+        return NotImplementedError
 
     def getCoarseLabel(self, fileName):
-        idx = self.fileNames.index(fileName)
-        return self.dataset[idx][1]['coarse']
+        return NotImplementedError
     def getFineLabel(self, fileName):
-        idx = self.fileNames.index(fileName)
-        return self.dataset[idx][1]['fine']
+        return NotImplementedError
 
 
     def getCoarseFromFine(self, fine):
-        fineIndex = self.dataset.classes.index(fine)
-        for coarse in self.coarse_to_fine:
-            fineInCoarse = self.coarse_to_fine[coarse]
-            if fineIndex in fineInCoarse:
-                return self.coarse_index_list[coarse]
+        return NotImplementedError
     
     # Returns a list of fine_index that belong to a coarse
     def getFineWithinCoarse(self, coarse):
-        return list(map(lambda x: self.dataset.classes[x], self.coarse_to_fine[self.coarse_index_list.index(coarse)]))
+        return NotImplementedError
     
 
     def getFineToCoarseMatrix(self):
-        if self.fineToCoarseMatrix is None:
-            self.fineToCoarseMatrix = torch.zeros(len(self.getFineList()), len(self.getCoarseList()))
-            for fine_name in self.getFineList():
-                coarse_name = self.getCoarseFromFine(fine_name)
-                fine_index = self.getFineList().index(fine_name)
-                coarse_index = self.getCoarseList().index(coarse_name)
-                self.fineToCoarseMatrix[fine_index][coarse_index] = 1
-        return self.fineToCoarseMatrix
+        return NotImplementedError
     
     def toggle_image_loading(self, augmentation, normalization, pad=None):
         old = (self.augmentation_enabled, self.normalization_enabled, None)
@@ -147,22 +123,10 @@ class CUB_Dataset(Dataset):
         return old
         
     def getTargetTransform(self, target):
-        return {
-            'fine': target,
-            'coarse': self.coarse_index_list.index(self.getCoarseFromFine(self.dataset.classes[target]))
-        }
+        return NotImplementedError
 
     def get_target_from_layerName(self, batch, layer_name, hierarchyBased=True, z_triplet=None, triplet_layers_dic=['layer2', 'layer3']):
-        result = None
-        first_layer = triplet_layers_dic[0]
-        second_layer = triplet_layers_dic[1]
-        
-        if layer_name == first_layer:
-            result = batch['coarse' if hierarchyBased==True else 'fine'] 
-        elif layer_name == second_layer:
-            result = batch['fine']
-            
-        return result
+        return NotImplementedError
 
     
     def __getitem__(self, idx):       
@@ -178,9 +142,11 @@ class CUB_Dataset(Dataset):
         # if torch.cuda.is_available():
         #     image = image.cuda()
 
-        return {'image': image, 
-                'fileName': self.fileNames[idx], #TODO Is this full name?
-                } 
+        return {'image': image,
+                'fine': target,
+                }
+                # 'fileName': self.fileNames[idx], #TODO Is this full name?
+                 
 
     def build_taxonomy_old(self):
         fineList = self.getFineList()
@@ -201,8 +167,8 @@ class CUB_Dataset(Dataset):
         return classes
 
     def get_species_from_class(self, common_name):
-        specie = self.class_to_phlyogeny_mapping[self.class_to_phlyogeny_mapping['English']==common_name]['TipLabel'].iloc[0]
-        return specie
+        species = self.class_to_phlyogeny_mapping[self.class_to_phlyogeny_mapping['English']==common_name]['TipLabel'].iloc[0]
+        return species
     
     def build_taxonomy(self):
         class_list = self.getClassesList()
@@ -408,6 +374,7 @@ def generate_CUB_dataset_file(dataset_folder_name):
                 imgs_['test'].append(images[idx])
                 labels_['test'].append(labels[idx])
 
+        # spliting train to train and validation
         splitter = 0
         with open(os.path.join(dataset_folder_name, 'train_train.txt'), 'w')as train_file:
             with open(os.path.join(dataset_folder_name, 'train_val.txt'), 'w')as val:
