@@ -1,14 +1,27 @@
 import os
+from tkinter import N
 from torch.utils.data import Dataset
 from torch.utils.data.sampler import SubsetRandomSampler
 import torch
 from torchvision import transforms, datasets
 import pandas as pd
 import copy
+from ete3 import Tree
 
 from myhelpers.read_write import Reader_writer
 from myhelpers.dataset_normalization import dataset_normalization
 
+
+testIndexFileName = "testIndex.pkl"
+valIndexFileName = "valIndex.pkl"
+trainingIndexFileName = "trainingIndex.pkl"
+
+
+def unpickle(file):
+    import pickle
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
         
 class CUB_Dataset(Dataset):
     def __init__(self, type_, params, normalizer=None, verbose=False):
@@ -24,11 +37,17 @@ class CUB_Dataset(Dataset):
         self.fineToCoarseMatrix = None
         self.type_ = type_
         self.grayscale = params["grayscale"]
+        self.transforms = None
 
-        data_root_suffix = os.path.join(self.data_root, self.suffix, type_)  
+        # data_root_suffix = os.path.join(self.data_root, self.suffix, type_)
+        data_root_suffix = os.path.join(self.data_root, 'subset_images')
+        phylo_path = os.path.join(self.data_root, params['phylogeny_path'])
+
+        self.phlyogeny = Tree(os.path.join(self.data_root, params['phylogeny_path']), format=1)
+        self.class_to_phlyogeny_mapping = pd.read_csv(os.path.join(self.data_root, params['class_to_phlyogeny_mapping']))
             
         print("Loading dataset...")       
-        print(data_root_suffix)     
+        print(data_root_suffix)
 
         self.dataset = datasets.ImageFolder(data_root_suffix, transform=transforms.Compose(self.getTransforms()), target_transform=None)
         self.mapFileNameToIndex = {} # This dictionary will make it easy to find the information of an image by its file name.
@@ -39,11 +58,15 @@ class CUB_Dataset(Dataset):
         self.RGBmean = [round(self.normalizer.mean[0]*255), round(self.normalizer.mean[1]*255), round(self.normalizer.mean[2]*255)]
         self.pad = True
 
-        # We don't have the genus for CUB dataset. so, we are just going to have species.
-        self.fileNames = x[b'filenames']
-            
-        metadata = unpickle(os.path.join(self.data_root,'cifar-100-python/meta'))
+        # # We don't have the genus for CUB dataset. so, we are just going to have species.
+        # self.fileNames = x[b'filenames']
+
+        cifar_data_root = '/raid/elhamod/cifar-100-python/'
+        
+        metadata = unpickle(os.path.join(cifar_data_root,'cifar-100-python/meta'))
         self.coarse_index_list = metadata[b'coarse_label_names']
+
+        # TODO: This will never run as normalizer won't be None as seen above
 
         # Create transfroms
         # Toggle beforehand so we could create the normalization transform. Then toggle back.
@@ -70,8 +93,9 @@ class CUB_Dataset(Dataset):
 
         transformsList = transformsList + [transforms.ToTensor()]
             
-        if self.normalization_enabled:
-            transformsList = transformsList + self.normalizer
+        # None normalizer won't add to the list
+        if self.normalization_enabled and self.normalizer is not None:
+            transformsList = transformsList + [self.normalizer]
         
         return transformsList
 
@@ -155,11 +179,10 @@ class CUB_Dataset(Dataset):
         #     image = image.cuda()
 
         return {'image': image, 
-                'fine': target['fine'], 
                 'fileName': self.fileNames[idx], #TODO Is this full name?
-                'coarse': target['coarse'],} 
+                } 
 
-    def build_taxonomy(self):
+    def build_taxonomy_old(self):
         fineList = self.getFineList()
 
         self.distance_matrix = torch.zeros(len(fineList), len(fineList))
@@ -171,6 +194,26 @@ class CUB_Dataset(Dataset):
                     self.distance_matrix[i, j] = 2
                 else:
                     self.distance_matrix[i, j] = 4
+
+    def getClassesList(self):
+        classes = self.dataset.classes
+        classes = [x.split('.')[1] for x in classes]
+        return classes
+
+    def get_species_from_class(self, common_name):
+        specie = self.class_to_phlyogeny_mapping[self.class_to_phlyogeny_mapping['English']==common_name]['TipLabel'].iloc[0]
+        return specie
+    
+    def build_taxonomy(self):
+        class_list = self.getClassesList()
+        self.distance_matrix = torch.zeros(len(class_list), len(class_list))
+        for i, species_i in enumerate(class_list):
+            for j, species_j in enumerate(class_list):
+                if i == j:
+                    self.distance_matrix[i, j] = 0
+                else:
+                    self.distance_matrix[i, j] = self.phlyogeny.get_distance(self.get_species_from_class(species_i), self.get_species_from_class(species_j))
+        
 
 
 
@@ -264,8 +307,8 @@ class datasetManager:
     def getDataset(self):
         if self.dataset_train is None:
             print("Creating dataset...")
-            self.dataset_train = CifarDataset("train", self.params, verbose=self.verbose)
-            self.dataset_test = CifarDataset("test", self.params, verbose=self.verbose)
+            self.dataset_train = CUB_Dataset("train", self.params, verbose=self.verbose)
+            self.dataset_test = CUB_Dataset("test", self.params, verbose=self.verbose)
             print("Creating dataset... Done.")
         return self.dataset_train, self.dataset_test
 
@@ -365,6 +408,17 @@ def generate_CUB_dataset_file(dataset_folder_name):
                 imgs_['test'].append(images[idx])
                 labels_['test'].append(labels[idx])
 
+        splitter = 0
+        with open(os.path.join(dataset_folder_name, 'train_train.txt'), 'w')as train_file:
+            with open(os.path.join(dataset_folder_name, 'train_val.txt'), 'w')as val:
+                for idx in train:
+                    if splitter%3 ==0:
+                        val.write('{} {}\n'.format(idx, labels[idx]))
+                    else:
+                        train_file.write('{} {}\n'.format(idx, labels[idx]))
+                    splitter+=1
+
+
     else:
         with open(os.path.join(dataset_folder_name, 'train.txt'), 'r')as f:
             for i in f.readlines():
@@ -379,4 +433,5 @@ def generate_CUB_dataset_file(dataset_folder_name):
                 labels_['test'].append(label)
     
     return imgs_, labels_
-    
+
+
