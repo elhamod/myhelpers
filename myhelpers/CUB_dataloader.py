@@ -16,8 +16,9 @@ testIndexFileName = "testIndex.pkl"
 valIndexFileName = "valIndex.pkl"
 trainingIndexFileName = "trainingIndex.pkl"
 
+# Phylogeny file names
 phlyogeny_path = '1_tree-consensus-Hacket-AllSpecies.phy'
-class_to_phlyogeny_mapping = 'class_to_phlyogeny_mapping'
+class_to_phlyogeny_mapping = 'CUB_taxon_reconciliation_corrected.csv'
         
 class CUB_Dataset(Dataset):
     def __init__(self, type_, params, normalizer=None, verbose=False):
@@ -38,7 +39,7 @@ class CUB_Dataset(Dataset):
         # data_root_suffix = os.path.join(self.data_root, self.suffix, type_)
         data_root_suffix = os.path.join(self.data_root, 'images')
 
-        self.phlyogeny = Tree(os.path.join(self.data_root, class_to_phlyogeny_mapping), format=1)
+        self.phlyogeny = Tree(os.path.join(self.data_root, phlyogeny_path), format=1)
         self.class_to_phlyogeny_mapping = pd.read_csv(os.path.join(self.data_root, class_to_phlyogeny_mapping))
             
         print("Loading dataset...")       
@@ -129,6 +130,8 @@ class CUB_Dataset(Dataset):
     def get_target_from_layerName(self, batch, layer_name, hierarchyBased=True, z_triplet=None, triplet_layers_dic=['layer2', 'layer3']):
         return NotImplementedError
 
+    def get_labels(self): #, indices=slice(0,)
+        return self.dataset.targets
     
     def __getitem__(self, idx):       
         if self.transforms is None:
@@ -165,7 +168,7 @@ class CUB_Dataset(Dataset):
     def getClassesList(self):
         classes = self.dataset.classes
         classes = [x.split('.')[1] for x in classes]
-        return classes
+        return sorted(classes)
 
     def get_species_from_class(self, common_name):
         species = self.class_to_phlyogeny_mapping[self.class_to_phlyogeny_mapping['English']==common_name]['TipLabel'].iloc[0]

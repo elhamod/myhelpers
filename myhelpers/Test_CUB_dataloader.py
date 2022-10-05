@@ -7,8 +7,6 @@ params = {
     "suffix":None, #"curated_30_50", #  None # used to get a subset cleaned_metadata file. set to None otherwise to use full metadata
 
     # newly added params
-    "phylogeny_path": "1_tree-consensus-Hacket-AllSpecies.phy", # name of phlyogeny tree
-    "class_to_phlyogeny_mapping": "CUB_taxon_reconciliation_corrected.csv",
     "grayscale": False,
     
     # dataset
@@ -55,6 +53,8 @@ print(len(train_loader), len(val_loader), len(test_loader))
 print(len(train_loader.dataset), len(val_loader.dataset), len(test_loader.dataset))
 
 print(train_loader.dataset[0])
+
+print(train_loader.dataset.get_labels())
 
 # print(train_loader.dataset[0])
 
