@@ -1,5 +1,5 @@
 import os
-from CUB_dataloader import CUB_Dataset, datasetManager, generate_CUB_dataset_file
+from CUB_dataloader import CUB_Dataset, datasetManager, generate_CUB_dataset_file, generate_CUB_190_dataset_file
 
 params = {
     # Do not change for multi/hyperp experiments
@@ -36,8 +36,8 @@ params = {
 
 }
 
-experimentsPath="/raid/mridul/CUB/experiments/" # why are we specifying this ?
-dataPath="/raid/mridul/CUB/official/"
+experimentsPath="/raid/mridul/CUB_190/experiments/" # why are we specifying this ?
+dataPath="/raid/mridul/CUB_190/official/"
 
 manager = datasetManager('')
 
@@ -48,9 +48,13 @@ params
 manager.updateParams(params)
 
 # generate_CUB_dataset_file(params["image_path"])
+# generate_CUB_190_dataset_file(params["image_path"])
 train_loader, val_loader, test_loader = manager.getLoaders()
 
 print(len(train_loader), len(val_loader), len(test_loader))
 print(len(train_loader.dataset), len(val_loader.dataset), len(test_loader.dataset))
 
 print(train_loader.dataset[0])
+
+# print(train_loader.dataset[0])
+

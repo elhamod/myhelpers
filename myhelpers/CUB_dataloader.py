@@ -16,6 +16,8 @@ testIndexFileName = "testIndex.pkl"
 valIndexFileName = "valIndex.pkl"
 trainingIndexFileName = "trainingIndex.pkl"
 
+phlyogeny_path = '1_tree-consensus-Hacket-AllSpecies.phy'
+class_to_phlyogeny_mapping = 'class_to_phlyogeny_mapping'
         
 class CUB_Dataset(Dataset):
     def __init__(self, type_, params, normalizer=None, verbose=False):
@@ -34,11 +36,10 @@ class CUB_Dataset(Dataset):
         self.transforms = None
 
         # data_root_suffix = os.path.join(self.data_root, self.suffix, type_)
-        data_root_suffix = os.path.join(self.data_root, 'subset_images')
-        phylo_path = os.path.join(self.data_root, params['phylogeny_path'])
+        data_root_suffix = os.path.join(self.data_root, 'images')
 
-        self.phlyogeny = Tree(os.path.join(self.data_root, params['phylogeny_path']), format=1)
-        self.class_to_phlyogeny_mapping = pd.read_csv(os.path.join(self.data_root, params['class_to_phlyogeny_mapping']))
+        self.phlyogeny = Tree(os.path.join(self.data_root, class_to_phlyogeny_mapping), format=1)
+        self.class_to_phlyogeny_mapping = pd.read_csv(os.path.join(self.data_root, class_to_phlyogeny_mapping))
             
         print("Loading dataset...")       
         print(data_root_suffix)
@@ -268,7 +269,7 @@ class datasetManager:
         self.data_root, self.suffix = getParams(params)
         self.experiment_folder_name = os.path.join(self.data_root, self.suffix, self.experimentName)
         self.dataset_folder_name = self.experiment_folder_name
-        self.get_traintestsplit()
+        # self.get_traintestsplit()
         
     def getDataset(self):
         if self.dataset_train is None:
@@ -401,4 +402,29 @@ def generate_CUB_dataset_file(dataset_folder_name):
     
     return imgs_, labels_
 
+def generate_CUB_190_dataset_file(dataset_folder_name):
+    cub_190_information = pd.read_csv(os.path.join(dataset_folder_name, 'CUB_190_dataset_information.csv'))
+    cub_190_information['class_label'] = cub_190_information['class_label']-1
+    train_split = cub_190_information[cub_190_information['train_test_split']==1]
+    test_split = cub_190_information[cub_190_information['train_test_split']==0]
+    
+    if not os.path.exists(os.path.join(dataset_folder_name, 'train.txt')):
+        with open(os.path.join(dataset_folder_name, 'train.txt'), 'w')as f:
+            for _,row in train_split.iterrows():
+                f.write('{},{}\n'.format(row['image_location'], row['class_label']))
+
+
+        with open(os.path.join(dataset_folder_name, 'test.txt'), 'w')as f:
+            for _,row in test_split.iterrows():
+                f.write('{},{}\n'.format(row['image_location'], row['class_label']))
+
+        splitter = 0
+        with open(os.path.join(dataset_folder_name, 'train_train.txt'), 'w')as train_file:
+            with open(os.path.join(dataset_folder_name, 'train_val.txt'), 'w')as val:
+                for _,row in train_split.iterrows():
+                    if splitter%3 ==0:
+                        val.write('{} {}\n'.format(row['new_index'], row['class_label']))
+                    else:
+                        train_file.write('{} {}\n'.format(row['new_index'], row['class_label']))
+                    splitter+=1
 
