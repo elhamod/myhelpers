@@ -32,7 +32,7 @@ def get_class_weights(labels):
 
     # return torch.tensor(label_to_count.values)
 
-    class_weights = class_weight.compute_class_weight('balanced', np.unique(labels),labels)
+    class_weights = class_weight.compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
     class_weights = torch.tensor(class_weights,dtype=torch.float)
     return class_weights
 

@@ -34,8 +34,8 @@ params = {
 
 }
 
-experimentsPath="/raid/mridul/CUB_190/experiments/" # why are we specifying this ?
-dataPath="/raid/mridul/CUB_190/official/"
+experimentsPath="/raid/mridul/CUB_190_split/experiments/" # why are we specifying this ?
+dataPath="/raid/mridul/CUB_190_split/official/"
 
 manager = datasetManager('')
 

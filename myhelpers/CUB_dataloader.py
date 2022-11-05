@@ -36,8 +36,8 @@ class CUB_Dataset(Dataset):
         self.grayscale = params["grayscale"]
         self.transforms = None
 
-        # data_root_suffix = os.path.join(self.data_root, self.suffix, type_)
-        data_root_suffix = os.path.join(self.data_root, 'images')
+        data_root_suffix = os.path.join(self.data_root, self.suffix, type_)
+        # data_root_suffix = os.path.join(self.data_root, 'subset_images')
 
         self.phlyogeny = Tree(os.path.join(self.data_root, phlyogeny_path), format=1)
         self.class_to_phlyogeny_mapping = pd.read_csv(os.path.join(self.data_root, class_to_phlyogeny_mapping))
@@ -143,8 +143,10 @@ class CUB_Dataset(Dataset):
             self.dataset.transform = self.composedTransforms
             
         image, target = self.dataset[idx]
+        image = image.type(torch.FloatTensor)
         # if torch.cuda.is_available():
         #     image = image.cuda()
+        target = torch.tensor([target])
 
         return {'image': image,
                 'fine': target,
