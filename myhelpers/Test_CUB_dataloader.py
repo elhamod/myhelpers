@@ -10,7 +10,7 @@ params = {
     "grayscale": False,
     
     # dataset
-    "img_res": 32, #TODO: SHOULD NEVER BE HARCODED
+    "img_res": 256, #TODO: SHOULD NEVER BE HARCODED
     "augmented": False,
 
     # training

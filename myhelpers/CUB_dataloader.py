@@ -78,7 +78,7 @@ class CUB_Dataset(Dataset):
         transformsList = []
         if self.augmentation_enabled:
             transformsList = transformsList + [
-                transforms.RandomCrop(size=(32, 32), padding=4),
+                transforms.RandomCrop(size=(self.imageDimension, self.imageDimension), padding=4),
                 transforms.RandomHorizontalFlip()
             ]
 
